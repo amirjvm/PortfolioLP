@@ -163,7 +163,6 @@ const RetroEffect = forwardRef<
   { colorNum: number; pixelSize: number }
 >((props, ref) => {
   const { colorNum, pixelSize } = props;
-  // @ts-expect-error - wrapEffect props are dynamic
   return <WrappedRetro ref={ref} colorNum={colorNum} pixelSize={pixelSize} />;
 });
 RetroEffect.displayName = "RetroEffect";

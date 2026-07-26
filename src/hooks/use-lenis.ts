@@ -7,8 +7,7 @@ export function useLenis() {
       duration: 1.15,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
-ようこそ: undefined as never,
-    } as ConstructorParameters<typeof Lenis>[0]);
+    });
 
     let raf = 0;
     const loop = (time: number) => {
