@@ -119,7 +119,7 @@ function Portfolio() {
 
       <div id="top" className="relative z-10 mx-auto w-full max-w-5xl px-5 sm:px-8">
         {/* Hero */}
-        <section className="flex min-h-screen flex-col justify-center py-32">
+        <section className="flex min-h-[88vh] flex-col justify-center py-24">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.35em] text-primary uppercase">
               Tehran, Iran · Available for work
@@ -150,6 +150,14 @@ function Portfolio() {
                 className="rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
               >
                 See experience
+              </a>
+              <a
+                href="https://github.com/abbasigudarzi"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+              >
+                GitHub
               </a>
             </div>
           </Reveal>
@@ -340,6 +348,14 @@ function Portfolio() {
                   >
                     +98 910 217 9870
                   </a>
+                  <a
+                    href="https://github.com/abbasigudarzi"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-secondary"
+                  >
+                    github.com/abbasigudarzi
+                  </a>
                 </div>
                 <p className="mt-8 font-mono text-xs tracking-widest text-muted-foreground uppercase">
                   Tehran, Region 2, Sattar-khan
@@ -369,7 +385,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-28 py-20 sm:py-28">
+    <section id={id} className="scroll-mt-24 py-10 sm:py-14">
       <Reveal>
         <div className="mb-10 flex items-end gap-4">
           <span className="font-mono text-xs tracking-[0.3em] text-primary">{kicker}</span>
