@@ -77,20 +77,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Amirali Abbasi — Java Backend Engineer" },
+      { title: "Amirali Abbasi" },
       {
         name: "description",
         content:
-          "Portfolio of Amirali Abbasi, a Java backend engineer working with Spring Boot, PostgreSQL and clean architecture.",
+          "Java backend engineer in Tehran building APIs and services with Java, Spring Boot, PostgreSQL and clean architecture. Experience with KYC, payments and SMS notification systems.",
       },
       { name: "author", content: "Amirali Abbasi" },
-      { property: "og:title", content: "Amirali Abbasi — Java Backend Engineer" },
+      { property: "og:title", content: "Amirali Abbasi" },
       {
         property: "og:description",
-        content: "Java & Spring Boot backend engineer based in Tehran.",
+        content: "Java backend engineer in Tehran building APIs and services with Java, Spring Boot, PostgreSQL and clean architecture. Experience with KYC, payments and SMS notification systems.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Amirali Abbasi" },
+      { name: "twitter:description", content: "Java backend engineer in Tehran building APIs and services with Java, Spring Boot, PostgreSQL and clean architecture. Experience with KYC, payments and SMS notification systems." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d0ca5bbc-418f-4a49-9f07-492b6c99c16f" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d0ca5bbc-418f-4a49-9f07-492b6c99c16f" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -103,7 +107,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
   shellComponent: RootShell,
