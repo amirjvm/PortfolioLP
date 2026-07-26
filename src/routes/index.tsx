@@ -37,12 +37,12 @@ const NAV = [
 const GLOW = {
   edgeSensitivity: 25,
   glowColor: "40 80 80",
-  backgroundColor: "oklch(0.19 0.014 62)",
+  backgroundColor: "oklch(0.19 0.025 158)",
   borderRadius: 24,
   glowRadius: 40,
   glowIntensity: 1,
   coneSpread: 25,
-  colors: ["#f0b45a", "#e2743b", "#4fd1c5"],
+  colors: ["#6ee7a0", "#22c55e", "#38d9c4"],
 };
 
 const SKILL_GROUPS = [
