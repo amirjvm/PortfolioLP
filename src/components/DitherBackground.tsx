@@ -13,11 +13,11 @@ export function DitherBackground() {
         waveColor={[0.16, 0.5, 0.28]}
         disableAnimation={false}
         enableMouseInteraction
-        mouseRadius={0.32}
+        mouseRadius={0.4}
         colorNum={3.5}
-        waveAmplitude={0.07}
-        waveFrequency={3}
-        waveSpeed={0.035}
+        waveAmplitude={0.32}
+        waveFrequency={3.4}
+        waveSpeed={0.14}
         pixelSize={2}
       />
     </Suspense>

@@ -93,6 +93,9 @@ function Portfolio() {
         <div className="absolute inset-0 opacity-60">
           <DitherBackground />
         </div>
+        <div className="aurora-orb aurora-orb-1" />
+        <div className="aurora-orb aurora-orb-2" />
+        <div className="aurora-orb aurora-orb-3" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_10%,var(--background)_78%)]" />
       </div>
 
