@@ -157,8 +157,7 @@ function Portfolio() {
             <dl className="mt-16 grid grid-cols-2 gap-6 border-t border-border pt-8 sm:grid-cols-4">
               {[
                 ["9 mo", "Industry experience"],
-                ["Java 
-Spring Boot", "Main stack"],
+                ["Java · Spring Boot", "Main stack"],
                 ["B.Eng", "Computer Engineering"],
                 ["M.Sc", "Software Engineering (ongoing)"],
               ].map(([v, k]) => (
