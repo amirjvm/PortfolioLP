@@ -49,10 +49,10 @@ export function useLenis() {
     };
 
 
-    document.addEventListener("click", onClick);
+    document.addEventListener("click", onClick, true);
 
     return () => {
-      document.removeEventListener("click", onClick);
+      document.removeEventListener("click", onClick, true);
       cancelAnimationFrame(tween);
       cancelAnimationFrame(raf);
       lenis.destroy();
