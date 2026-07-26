@@ -10,7 +10,7 @@ export function DitherBackground() {
   return (
     <Suspense fallback={null}>
       <Dither
-        waveColor={[0.55, 0.4, 0.14]}
+        waveColor={[0.16, 0.5, 0.28]}
         disableAnimation={false}
         enableMouseInteraction
         mouseRadius={0.32}

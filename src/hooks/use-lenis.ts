@@ -16,7 +16,31 @@ export function useLenis() {
     };
     raf = requestAnimationFrame(loop);
 
+    // Animate in-page anchor clicks instead of jumping there instantly.
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey) return;
+      const anchor = (e.target as HTMLElement | null)?.closest?.(
+        'a[href^="#"]',
+      ) as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const hash = anchor.getAttribute("href");
+      if (!hash || hash === "#") return;
+      const target = document.querySelector(hash) as HTMLElement | null;
+      if (!target) return;
+
+      e.preventDefault();
+      lenis.scrollTo(target, {
+        offset: -96,
+        duration: 1.3,
+        easing: (t: number) => 1 - Math.pow(1 - t, 4),
+      });
+      window.history.replaceState(null, "", hash);
+    };
+
+    document.addEventListener("click", onClick, true);
+
     return () => {
+      document.removeEventListener("click", onClick, true);
       cancelAnimationFrame(raf);
       lenis.destroy();
     };
