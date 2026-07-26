@@ -53,6 +53,7 @@ export function useLenis() {
 
     return () => {
       document.removeEventListener("click", onClick);
+      cancelAnimationFrame(tween);
       cancelAnimationFrame(raf);
       lenis.destroy();
     };
