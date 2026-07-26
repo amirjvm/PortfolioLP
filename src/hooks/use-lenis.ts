@@ -39,14 +39,20 @@ export function useLenis() {
       const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
       cancelAnimationFrame(tween);
+      lenis.stop();
       const step = (now: number) => {
         const t = Math.min(1, (now - start) / duration);
-        lenis.scrollTo(from + distance * ease(t), { immediate: true, force: true });
-        if (t < 1) tween = requestAnimationFrame(step);
+        window.scrollTo(0, from + distance * ease(t));
+        if (t < 1) {
+          tween = requestAnimationFrame(step);
+        } else {
+          lenis.start();
+        }
       };
       tween = requestAnimationFrame(step);
       window.history.replaceState(null, "", hash);
     };
+
 
 
     document.addEventListener("click", onClick, true);
