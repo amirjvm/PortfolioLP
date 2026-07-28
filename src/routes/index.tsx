@@ -7,17 +7,17 @@ import { useLenis } from "@/hooks/use-lenis";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Amirali Abbasi" },
+      { title: "Amirali Abbasi — Java Backend Engineer" },
       {
         name: "description",
         content:
           "Java backend engineer in Tehran building APIs and services with Java, Spring Boot, PostgreSQL and clean architecture. Experience with KYC, payments and SMS notification systems.",
       },
-      { property: "og:title", content: "Amirali Abbasi" },
+      { property: "og:title", content: "Amirali Abbasi — Java Backend Engineer" },
       {
         property: "og:description",
         content:
-          "Java backend engineer in Tehran building APIs and services with Java, Spring Boot, PostgreSQL and clean architecture. Experience with KYC, payments and SMS notification systems.",
+          "Java & Spring Boot backend engineer focused on clean architecture, reliable data design and cloud-native services.",
       },
       { property: "og:type", content: "profile" },
       { name: "twitter:card", content: "summary_large_image" },
