@@ -124,7 +124,7 @@ function Portfolio() {
 
       <div id="top" className="relative z-10 mx-auto w-full max-w-5xl px-5 sm:px-8">
         {/* Hero */}
-        <section className="flex min-h-[88vh] flex-col justify-center py-24">
+        <section ref={heroRef} className="flex min-h-[88vh] flex-col justify-center py-24">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.35em] text-primary uppercase">
               Tehran, Iran · Available for work
