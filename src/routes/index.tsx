@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useRef } from "react";
 import BorderGlow from "@/components/BorderGlow";
-import { DitherBackground } from "@/components/DitherBackground";
+import { GlitchBackground } from "@/components/GlitchBackground";
 import { Reveal } from "@/components/Reveal";
+import SpecularButton from "@/components/SpecularButton";
 import { useLenis } from "@/hooks/use-lenis";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,15 +88,17 @@ const HIGHLIGHTS = [
 
 function Portfolio() {
   useLenis();
+  const heroRef = useRef<HTMLElement | null>(null);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Fixed generative background */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute inset-0 opacity-60">
-          <DitherBackground />
+        <div className="absolute inset-0 opacity-45">
+          <GlitchBackground heroRef={heroRef} />
         </div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_10%,var(--background)_78%)]" />
+
       </div>
 
       {/* Nav */}
@@ -119,7 +124,7 @@ function Portfolio() {
 
       <div id="top" className="relative z-10 mx-auto w-full max-w-5xl px-5 sm:px-8">
         {/* Hero */}
-        <section className="flex min-h-[88vh] flex-col justify-center py-24">
+        <section ref={heroRef} className="flex min-h-[88vh] flex-col justify-center py-24">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.35em] text-primary uppercase">
               Tehran, Iran · Available for work
@@ -336,27 +341,48 @@ function Portfolio() {
                   team.
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
-                  <a
+                  <SpecularButton
                     href="mailto:abbasigudarzi@gmail.com"
-                    className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-transform duration-200 hover:scale-105"
+                    size="md"
+                    radius={999}
+                    lineColor="#6ee7a0"
+                    baseColor="#2a5a41"
+                    textColor="#eafff2"
+                    tint="#4ade80"
+                    tintOpacity={0.1}
+                    shineSize={14}
+                    proximity={220}
                   >
                     abbasigudarzi@gmail.com
-                  </a>
-                  <a
+                  </SpecularButton>
+                  <SpecularButton
                     href="tel:+989102179870"
-                    className="rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-secondary"
+                    size="md"
+                    radius={999}
+                    lineColor="#38d9c4"
+                    baseColor="#2a5a41"
+                    textColor="#eafff2"
+                    shineSize={14}
+                    proximity={220}
                   >
                     +98 910 217 9870
-                  </a>
-                  <a
+                  </SpecularButton>
+                  <SpecularButton
                     href="https://github.com/abbasigudarzi"
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-secondary"
+                    size="md"
+                    radius={999}
+                    lineColor="#a7f3d0"
+                    baseColor="#2a5a41"
+                    textColor="#eafff2"
+                    shineSize={14}
+                    proximity={220}
                   >
                     github.com/abbasigudarzi
-                  </a>
+                  </SpecularButton>
                 </div>
+
                 <p className="mt-8 font-mono text-xs tracking-widest text-muted-foreground uppercase">
                   Tehran, Region 2, Sattar-khan
                 </p>
