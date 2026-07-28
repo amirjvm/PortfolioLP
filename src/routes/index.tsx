@@ -88,15 +88,17 @@ const HIGHLIGHTS = [
 
 function Portfolio() {
   useLenis();
+  const heroRef = useRef<HTMLElement | null>(null);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Fixed generative background */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute inset-0 opacity-60">
-          <DitherBackground />
+        <div className="absolute inset-0 opacity-45">
+          <GlitchBackground heroRef={heroRef} />
         </div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_10%,var(--background)_78%)]" />
+
       </div>
 
       {/* Nav */}
