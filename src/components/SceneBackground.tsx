@@ -24,7 +24,7 @@ export function SceneBackground({ heroRef }: { heroRef: RefObject<HTMLElement | 
       const p = Math.min(1, Math.max(0, window.scrollY / span));
       const eased = p * p * (3 - 2 * p);
       if (glitchLayer.current) glitchLayer.current.style.opacity = String(0.45 * (1 - eased));
-      if (gradientLayer.current) gradientLayer.current.style.opacity = String(eased);
+      if (gradientLayer.current) gradientLayer.current.style.opacity = String(0.5 * eased);
     };
     const onScroll = () => {
       if (raf === 0) raf = requestAnimationFrame(update);
@@ -45,9 +45,9 @@ export function SceneBackground({ heroRef }: { heroRef: RefObject<HTMLElement | 
     <Suspense fallback={null}>
       <div ref={gradientLayer} className="absolute inset-0 opacity-0">
         <Grainient
-          color1="#6ee7a0"
-          color2="#0b3524"
-          color3="#04120c"
+          color1="#2f8f63"
+          color2="#08251a"
+          color3="#030c08"
           timeSpeed={0.18}
           warpSpeed={1.2}
           rotationAmount={320}
