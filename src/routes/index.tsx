@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef } from "react";
 import BorderGlow from "@/components/BorderGlow";
-import { GlitchBackground } from "@/components/GlitchBackground";
+import { SceneBackground } from "@/components/SceneBackground";
 import { Reveal } from "@/components/Reveal";
 import SpecularButton from "@/components/SpecularButton";
 import { useLenis } from "@/hooks/use-lenis";
@@ -94,11 +94,8 @@ function Portfolio() {
     <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Fixed generative background */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute inset-0 opacity-45">
-          <GlitchBackground heroRef={heroRef} />
-        </div>
+        <SceneBackground heroRef={heroRef} />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_10%,var(--background)_78%)]" />
-
       </div>
 
       {/* Nav */}
