@@ -95,7 +95,7 @@ function Portfolio() {
       {/* Fixed generative background */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <SceneBackground heroRef={heroRef} />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_10%,var(--background)_78%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_20%,color-mix(in_oklab,var(--background)_70%,transparent)_95%)]" />
       </div>
 
       {/* Nav */}
