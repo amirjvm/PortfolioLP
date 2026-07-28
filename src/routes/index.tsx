@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useRef } from "react";
 import BorderGlow from "@/components/BorderGlow";
-import { DitherBackground } from "@/components/DitherBackground";
+import { GlitchBackground } from "@/components/GlitchBackground";
 import { Reveal } from "@/components/Reveal";
+import SpecularButton from "@/components/SpecularButton";
 import { useLenis } from "@/hooks/use-lenis";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
