@@ -341,27 +341,48 @@ function Portfolio() {
                   team.
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
-                  <a
+                  <SpecularButton
                     href="mailto:abbasigudarzi@gmail.com"
-                    className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-transform duration-200 hover:scale-105"
+                    size="md"
+                    radius={999}
+                    lineColor="#6ee7a0"
+                    baseColor="#2a5a41"
+                    textColor="#eafff2"
+                    tint="#4ade80"
+                    tintOpacity={0.1}
+                    shineSize={14}
+                    proximity={220}
                   >
                     abbasigudarzi@gmail.com
-                  </a>
-                  <a
+                  </SpecularButton>
+                  <SpecularButton
                     href="tel:+989102179870"
-                    className="rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-secondary"
+                    size="md"
+                    radius={999}
+                    lineColor="#38d9c4"
+                    baseColor="#2a5a41"
+                    textColor="#eafff2"
+                    shineSize={14}
+                    proximity={220}
                   >
                     +98 910 217 9870
-                  </a>
-                  <a
+                  </SpecularButton>
+                  <SpecularButton
                     href="https://github.com/abbasigudarzi"
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-secondary"
+                    size="md"
+                    radius={999}
+                    lineColor="#a7f3d0"
+                    baseColor="#2a5a41"
+                    textColor="#eafff2"
+                    shineSize={14}
+                    proximity={220}
                   >
                     github.com/abbasigudarzi
-                  </a>
+                  </SpecularButton>
                 </div>
+
                 <p className="mt-8 font-mono text-xs tracking-widest text-muted-foreground uppercase">
                   Tehran, Region 2, Sattar-khan
                 </p>
