@@ -102,50 +102,67 @@ const BorderGlow = ({
   fillOpacity = 0.5,
 }: BorderGlowProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  // Cached on enter so a move never reads layout. The original path called
+  // getBoundingClientRect three times per pointermove event, on 7 cards.
+  const rectRef = useRef<DOMRect | null>(null);
+  const pointerRef = useRef({ x: 0, y: 0 });
+  const rafRef = useRef(0);
 
-  const getCenterOfElement = useCallback((el: HTMLElement) => {
-    const { width, height } = el.getBoundingClientRect();
-    return [width / 2, height / 2] as const;
+  const applyPointer = useCallback(() => {
+    rafRef.current = 0;
+    const card = cardRef.current;
+    const rect = rectRef.current;
+    if (!card || !rect) return;
+
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const dx = pointerRef.current.x - rect.left - cx;
+    const dy = pointerRef.current.y - rect.top - cy;
+
+    let kx = Infinity;
+    let ky = Infinity;
+    if (dx !== 0) kx = cx / Math.abs(dx);
+    if (dy !== 0) ky = cy / Math.abs(dy);
+    const proximity = Math.min(Math.max(1 / Math.min(kx, ky), 0), 1);
+
+    let degrees = 0;
+    if (dx !== 0 || dy !== 0) {
+      degrees = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+      if (degrees < 0) degrees += 360;
+    }
+
+    card.style.setProperty("--edge-proximity", `${(proximity * 100).toFixed(3)}`);
+    card.style.setProperty("--cursor-angle", `${degrees.toFixed(3)}deg`);
   }, []);
 
-  const getEdgeProximity = useCallback(
-    (el: HTMLElement, x: number, y: number) => {
-      const [cx, cy] = getCenterOfElement(el);
-      const dx = x - cx;
-      const dy = y - cy;
-      let kx = Infinity;
-      let ky = Infinity;
-      if (dx !== 0) kx = cx / Math.abs(dx);
-      if (dy !== 0) ky = cy / Math.abs(dy);
-      return Math.min(Math.max(1 / Math.min(kx, ky), 0), 1);
-    },
-    [getCenterOfElement],
-  );
-
-  const getCursorAngle = useCallback(
-    (el: HTMLElement, x: number, y: number) => {
-      const [cx, cy] = getCenterOfElement(el);
-      const dx = x - cx;
-      const dy = y - cy;
-      if (dx === 0 && dy === 0) return 0;
-      let degrees = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-      if (degrees < 0) degrees += 360;
-      return degrees;
-    },
-    [getCenterOfElement],
-  );
-
+  // One style write per frame at most, however fast the mouse reports.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      const card = cardRef.current;
-      if (!card) return;
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      card.style.setProperty("--edge-proximity", `${(getEdgeProximity(card, x, y) * 100).toFixed(3)}`);
-      card.style.setProperty("--cursor-angle", `${getCursorAngle(card, x, y).toFixed(3)}deg`);
+      if (!rectRef.current) rectRef.current = cardRef.current?.getBoundingClientRect() ?? null;
+      pointerRef.current.x = e.clientX;
+      pointerRef.current.y = e.clientY;
+      if (rafRef.current === 0) rafRef.current = requestAnimationFrame(applyPointer);
     },
-    [getEdgeProximity, getCursorAngle],
+    [applyPointer],
+  );
+
+  const handlePointerEnter = useCallback(() => {
+    rectRef.current = cardRef.current?.getBoundingClientRect() ?? null;
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    rectRef.current = null;
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    },
+    [],
   );
 
   useEffect(() => {
@@ -184,7 +201,9 @@ const BorderGlow = ({
   return (
     <div
       ref={cardRef}
+      onPointerEnter={handlePointerEnter}
       onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
       className={`border-glow-card ${className}`}
       style={
         {

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef } from "react";
 import BorderGlow from "@/components/BorderGlow";
+import { HeroNav } from "@/components/HeroNav";
 import { SceneBackground } from "@/components/SceneBackground";
 import { Reveal } from "@/components/Reveal";
 import SpecularButton from "@/components/SpecularButton";
@@ -40,7 +41,7 @@ const NAV = [
 const GLOW = {
   edgeSensitivity: 25,
   glowColor: "40 80 80",
-  backgroundColor: "oklch(0.19 0.025 158)",
+  backgroundColor: "oklch(0.11 0.008 155)",
   borderRadius: 24,
   glowRadius: 40,
   glowIntensity: 1,
@@ -98,29 +99,11 @@ function Portfolio() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_20%,color-mix(in_oklab,var(--background)_88%,transparent)_95%)]" />
       </div>
 
-      {/* Nav */}
-      <header className="fixed inset-x-0 top-0 z-30 flex justify-center px-4 pt-5">
-        <nav className="glass-panel flex items-center gap-1 rounded-full border border-border px-2 py-2 text-sm">
-          <a
-            href="#top"
-            className="rounded-full px-3 py-1.5 font-mono text-xs tracking-widest text-primary uppercase"
-          >
-            AA
-          </a>
-          {NAV.map((n) => (
-            <a
-              key={n.id}
-              href={`#${n.id}`}
-              className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              {n.label}
-            </a>
-          ))}
-        </nav>
-      </header>
+      {/* Nav — lives with the hero and dissolves once you scroll past it */}
+      <HeroNav items={NAV} heroRef={heroRef} />
 
+      {/* Hero — the only part of the page that shows the animated background */}
       <div id="top" className="relative z-10 mx-auto w-full max-w-5xl px-5 sm:px-8">
-        {/* Hero */}
         <section ref={heroRef} className="flex min-h-[88vh] flex-col justify-center py-24">
           <Reveal>
             <p className="font-mono text-xs tracking-[0.35em] text-primary uppercase">
@@ -179,7 +162,19 @@ function Portfolio() {
             </dl>
           </Reveal>
         </section>
+      </div>
 
+      {/*
+        Everything past the hero sits on an opaque black panel, so the animated
+        field is confined to the hero. The strip pinned directly above the panel
+        is the shadow that fades one into the other.
+      */}
+      <div className="relative z-10 bg-background">
+        <div
+          aria-hidden
+          className="hero-fade pointer-events-none absolute inset-x-0 bottom-full h-56"
+        />
+        <div className="mx-auto w-full max-w-5xl px-5 sm:px-8">
         {/* About */}
         <Section id="about" title="About me" kicker="01">
           <div className="grid gap-6 md:grid-cols-2">
@@ -391,6 +386,7 @@ function Portfolio() {
         <footer className="border-t border-border py-10 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Amirali Abbasi — Java Backend Engineer
         </footer>
+        </div>
       </div>
     </main>
   );

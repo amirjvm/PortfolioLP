@@ -4,6 +4,31 @@ import "./SpecularButton.css";
 
 const PAD = 20;
 
+// One window-level pointer listener shared by every button on the page instead
+// of one per instance — this component is used ~7 times in the hero//page.
+type PointerSubscriber = (x: number, y: number) => void;
+const pointerSubscribers = new Set<PointerSubscriber>();
+let pointerListenerAttached = false;
+
+const dispatchPointer = (e: PointerEvent) => {
+  for (const fn of pointerSubscribers) fn(e.clientX, e.clientY);
+};
+
+function subscribeToPointer(fn: PointerSubscriber) {
+  pointerSubscribers.add(fn);
+  if (!pointerListenerAttached && typeof window !== "undefined") {
+    window.addEventListener("pointermove", dispatchPointer, { passive: true });
+    pointerListenerAttached = true;
+  }
+  return () => {
+    pointerSubscribers.delete(fn);
+    if (pointerSubscribers.size === 0 && pointerListenerAttached) {
+      window.removeEventListener("pointermove", dispatchPointer);
+      pointerListenerAttached = false;
+    }
+  };
+}
+
 const VERT = `#version 300 es
 in vec2 position;
 void main() {
@@ -140,7 +165,7 @@ const SpecularButton = ({
     const fx = fxRef.current;
     if (!btn || !fx) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const renderer = new Renderer({
       alpha: true,
       premultipliedAlpha: true,
@@ -178,8 +203,24 @@ const SpecularButton = ({
     fx.appendChild(gl.canvas);
 
     const sizeRef = { w: 1, h: 1 };
-    const resize = () => {
+
+    // Cached viewport box so pointer handling never reads layout. Refreshed
+    // wherever the box can actually move: resize and scroll.
+    let boxLeft = 0;
+    let boxTop = 0;
+    let boxRight = 0;
+    let boxBottom = 0;
+    const readBox = () => {
       const rect = btn.getBoundingClientRect();
+      boxLeft = rect.left;
+      boxTop = rect.top;
+      boxRight = rect.right;
+      boxBottom = rect.bottom;
+      return rect;
+    };
+
+    const resize = () => {
+      const rect = readBox();
       const w = rect.width;
       const h = rect.height;
       sizeRef.w = w;
@@ -196,38 +237,65 @@ const SpecularButton = ({
     let pointerAngle: number | null = null;
     let proximityT = 0;
 
-    const onPointerMove = (e: PointerEvent) => {
-      const rect = btn.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const dx = Math.max(rect.left - e.clientX, 0, e.clientX - rect.right);
-      const dy = Math.max(rect.top - e.clientY, 0, e.clientY - rect.bottom);
-      const dist = Math.hypot(dx, dy);
+    const onPointer = (px: number, py: number) => {
+      const width = boxRight - boxLeft;
+      const height = boxBottom - boxTop;
+      if (width <= 0 || height <= 0) return;
+      const cx = boxLeft + width / 2;
+      const cy = boxTop + height / 2;
+      const dx = Math.max(boxLeft - px, 0, px - boxRight);
+      const dy = Math.max(boxTop - py, 0, py - boxBottom);
+      const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist === 0) {
-        const nx = (e.clientX - cx) / (rect.width / 2);
-        const ny = (cy - e.clientY) / (rect.height / 2);
-        pointerAngle = Math.atan2(2 / rect.height, -2 / rect.width) + nx * 0.3 + ny * 0.15;
+        const nx = (px - cx) / (width / 2);
+        const ny = (cy - py) / (height / 2);
+        pointerAngle = Math.atan2(2 / height, -2 / width) + nx * 0.3 + ny * 0.15;
       } else {
-        pointerAngle = Math.atan2(cy - e.clientY, e.clientX - cx);
+        pointerAngle = Math.atan2(cy - py, px - cx);
       }
 
       const t = Math.max(0, 1 - dist / Math.max(propsRef.current.proximity, 1));
       proximityT = t * t * (3 - 2 * t);
+      // A pointer that can influence this button wakes the loop back up.
+      if (proximityT > 0) sync();
     };
 
-    window.addEventListener("pointermove", onPointerMove);
+    const unsubscribePointer = subscribeToPointer(onPointer);
+    const onScroll = () => readBox();
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     let angle = 2.4;
     let idleAngle = 2.4;
     let bright = 0;
     let last = performance.now();
     let raf = 0;
+    let isOnScreen = true;
+    let isPageVisible = !document.hidden;
+    const reduceMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Colour props are static in practice; parse them only when they change
+    // rather than allocating and re-parsing two Colors every frame.
     const lineC = new Color();
     const baseC = new Color();
+    let lastLineColor = "";
+    let lastBaseColor = "";
+    const lineUniform = program.uniforms.uLineColor.value as number[];
+    const baseUniform = program.uniforms.uBaseColor.value as number[];
 
-    const update = (now: number) => {
-      raf = requestAnimationFrame(update);
+    /**
+     * With uIntensity at 0 the shader's highlight term vanishes and the output
+     * depends only on the geometry — so once the glow has faded out there is
+     * nothing left for a new frame to change, and the loop can stop until the
+     * pointer comes back.
+     */
+    const IDLE_EPSILON = 0.001;
+    const isIdle = () =>
+      !propsRef.current.autoAnimate && bright < IDLE_EPSILON && proximityT < IDLE_EPSILON;
+
+    const renderFrame = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       const p = propsRef.current;
@@ -240,15 +308,26 @@ const SpecularButton = ({
 
       const brightTarget = p.autoAnimate ? 1 : proximityT;
       bright += (brightTarget - bright) * (1 - Math.exp(-dt * 8));
+      if (bright < IDLE_EPSILON) bright = 0;
 
-      lineC.set(p.lineColor);
-      baseC.set(p.baseColor);
+      if (p.lineColor !== lastLineColor) {
+        lineC.set(p.lineColor);
+        lastLineColor = p.lineColor;
+        lineUniform[0] = lineC.r;
+        lineUniform[1] = lineC.g;
+        lineUniform[2] = lineC.b;
+      }
+      if (p.baseColor !== lastBaseColor) {
+        baseC.set(p.baseColor);
+        lastBaseColor = p.baseColor;
+        baseUniform[0] = baseC.r;
+        baseUniform[1] = baseC.g;
+        baseUniform[2] = baseC.b;
+      }
 
       program.uniforms.uAngle.value = angle;
       program.uniforms.uRadius.value =
         Math.min(p.radius, Math.min(sizeRef.w, sizeRef.h) / 2) * dpr;
-      program.uniforms.uLineColor.value = [lineC.r, lineC.g, lineC.b];
-      program.uniforms.uBaseColor.value = [baseC.r, baseC.g, baseC.b];
       program.uniforms.uIntensity.value = p.intensity * bright;
       program.uniforms.uShineSize.value = (p.shineSize * Math.PI) / 180;
       program.uniforms.uShineFade.value = (p.shineFade * Math.PI) / 180;
@@ -257,12 +336,60 @@ const SpecularButton = ({
       renderer.render({ scene: mesh });
     };
 
-    raf = requestAnimationFrame(update);
+    const update = (now: number) => {
+      renderFrame(now);
+      if (isIdle()) {
+        raf = 0;
+        return;
+      }
+      raf = requestAnimationFrame(update);
+    };
+
+    const running = () => isOnScreen && isPageVisible && !reduceMotion;
+    const start = () => {
+      if (raf === 0 && running() && !isIdle()) {
+        last = performance.now();
+        raf = requestAnimationFrame(update);
+      }
+    };
+    const stop = () => {
+      if (raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+    function sync() {
+      if (running()) start();
+      else stop();
+    }
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        isOnScreen = entry.isIntersecting;
+        readBox();
+        sync();
+      },
+      { threshold: 0 },
+    );
+    io.observe(btn);
+
+    const onVisibility = () => {
+      isPageVisible = !document.hidden;
+      sync();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Paint the settled state once so the button is correct while idle.
+    renderFrame(performance.now());
+    sync();
 
     return () => {
-      cancelAnimationFrame(raf);
+      stop();
       ro.disconnect();
-      window.removeEventListener("pointermove", onPointerMove);
+      io.disconnect();
+      unsubscribePointer();
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("visibilitychange", onVisibility);
       if (gl.canvas.parentNode === fx) fx.removeChild(gl.canvas);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };

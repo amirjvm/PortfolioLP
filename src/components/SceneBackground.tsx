@@ -1,71 +1,65 @@
-import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useScrollY } from "@/hooks/use-scroll";
 
 const LetterGlitch = lazy(() => import("./LetterGlitch"));
-const Grainient = lazy(() => import("./Grainient"));
+
+// Hoisted so the array keeps identity across renders — LetterGlitch keys its
+// precomputed colour table off this prop.
+const GLITCH_COLORS = ["#16301f", "#4ade80", "#38d9c4"];
+
+/** Below this opacity the layer contributes nothing visible, so stop drawing it. */
+const VISIBLE_EPSILON = 0.01;
 
 /**
- * Fixed page background: LetterGlitch owns the hero, a Grainient gradient owns
- * everything below it, cross-fading smoothly as you scroll out of the hero.
+ * Fixed page background. LetterGlitch owns the hero and nothing else: past the
+ * hero the page sits on an opaque black panel, so the field is faded out and
+ * its loop stopped rather than drawn underneath something that hides it.
  */
 export function SceneBackground({ heroRef }: { heroRef: RefObject<HTMLElement | null> }) {
   const [mounted, setMounted] = useState(false);
   const glitchLayer = useRef<HTMLDivElement | null>(null);
-  const gradientLayer = useRef<HTMLDivElement | null>(null);
+  const [glitchPaused, setGlitchPaused] = useState(false);
+  // Mirror of the React state so the scroll path only calls setState when the
+  // layer actually crosses its visibility threshold, not on every frame.
+  const glitchOffRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
-    if (!mounted) return;
-    let raf = 0;
-    const update = () => {
-      raf = 0;
+  const onScroll = useCallback(
+    (scrollY: number) => {
       const hero = heroRef.current;
       const span = Math.max(1, (hero?.offsetHeight ?? window.innerHeight) * 0.75);
-      const p = Math.min(1, Math.max(0, window.scrollY / span));
+      const p = Math.min(1, Math.max(0, scrollY / span));
       const eased = p * p * (3 - 2 * p);
-      if (glitchLayer.current) glitchLayer.current.style.opacity = String(0.45 * (1 - eased));
-      if (gradientLayer.current) gradientLayer.current.style.opacity = String(0.5 * eased);
-    };
-    const onScroll = () => {
-      if (raf === 0) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [mounted, heroRef]);
+      const glitchOpacity = 0.45 * (1 - eased);
+
+      if (glitchLayer.current) glitchLayer.current.style.opacity = String(glitchOpacity);
+
+      const nextGlitchOff = glitchOpacity <= VISIBLE_EPSILON;
+      if (nextGlitchOff !== glitchOffRef.current) {
+        glitchOffRef.current = nextGlitchOff;
+        setGlitchPaused(nextGlitchOff);
+      }
+    },
+    [heroRef],
+  );
+
+  useScrollY(onScroll);
 
   if (!mounted) return null;
 
   return (
     <Suspense fallback={null}>
-      <div ref={gradientLayer} className="absolute inset-0 opacity-0">
-        <Grainient
-          color1="#2f8f63"
-          color2="#08251a"
-          color3="#030c08"
-          timeSpeed={0.18}
-          warpSpeed={1.2}
-          rotationAmount={320}
-          grainAmount={0.09}
-          contrast={1.35}
-          saturation={1.05}
-          zoom={0.9}
-        />
-      </div>
       <div ref={glitchLayer} className="absolute inset-0 opacity-45">
         <LetterGlitch
-          glitchColors={["#16301f", "#4ade80", "#38d9c4"]}
+          glitchColors={GLITCH_COLORS}
           glitchSpeed={60}
           centerVignette={false}
           outerVignette
           smooth
           interactionRadius={150}
           interactionBounds={() => heroRef.current?.getBoundingClientRect() ?? null}
+          paused={glitchPaused}
         />
       </div>
     </Suspense>

@@ -123,6 +123,8 @@ export type GrainientProps = {
   color2?: string;
   color3?: string;
   className?: string;
+  /** Stop the render loop entirely — e.g. the layer is faded out. */
+  paused?: boolean;
 };
 
 const Grainient = ({
@@ -149,8 +151,18 @@ const Grainient = ({
   color2 = "#5227FF",
   color3 = "#B497CF",
   className = "",
+  paused = false,
 }: GrainientProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pausedRef = useRef(paused);
+  // Set by the GL effect so toggling `paused` re-evaluates the run gate without
+  // tearing down and re-creating the WebGL context.
+  const syncRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    pausedRef.current = paused;
+    syncRef.current();
+  }, [paused]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -160,7 +172,9 @@ const Grainient = ({
       webgl: 2,
       alpha: true,
       antialias: false,
-      dpr: Math.min(window.devicePixelRatio || 1, 2),
+      // A soft full-screen gradient is fragment-bound: pixel count is the whole
+      // cost, and the extra samples above 1.5x are not visible in this content.
+      dpr: Math.min(window.devicePixelRatio || 1, 1.5),
     });
     const gl = renderer.gl;
     const canvas = gl.canvas as HTMLCanvasElement;
@@ -221,6 +235,9 @@ const Grainient = ({
     let raf = 0;
     let isVisible = true;
     let isPageVisible = !document.hidden;
+    const reduceMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const t0 = performance.now();
 
     const loop = (t: number) => {
@@ -228,8 +245,9 @@ const Grainient = ({
       renderer.render({ scene: mesh });
       raf = requestAnimationFrame(loop);
     };
+    const running = () => isVisible && isPageVisible && !pausedRef.current && !reduceMotion;
     const tryStart = () => {
-      if (isVisible && isPageVisible && raf === 0) raf = requestAnimationFrame(loop);
+      if (raf === 0 && running()) raf = requestAnimationFrame(loop);
     };
     const tryStop = () => {
       if (raf !== 0) {
@@ -237,12 +255,13 @@ const Grainient = ({
         raf = 0;
       }
     };
+    const sync = () => (running() ? tryStart() : tryStop());
+    syncRef.current = sync;
 
     const io = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting;
-        if (isVisible) tryStart();
-        else tryStop();
+        sync();
       },
       { threshold: 0 },
     );
@@ -250,14 +269,14 @@ const Grainient = ({
 
     const onVisibility = () => {
       isPageVisible = !document.hidden;
-      if (isPageVisible) tryStart();
-      else tryStop();
+      sync();
     };
     document.addEventListener("visibilitychange", onVisibility);
-    tryStart();
+    sync();
 
     return () => {
       tryStop();
+      syncRef.current = () => {};
       ro.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);

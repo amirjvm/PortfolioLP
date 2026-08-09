@@ -1,11 +1,4 @@
-import { useRef, useEffect } from "react";
-
-type Letter = {
-  char: string;
-  color: string;
-  targetColor: string;
-  colorProgress: number;
-};
+import { useEffect, useMemo, useRef } from "react";
 
 type Props = {
   glitchColors?: string[];
@@ -19,7 +12,55 @@ type Props = {
   interactionBounds?: () => DOMRect | null;
   /** Radius in px around the cursor that gets scrambled. */
   interactionRadius?: number;
+  /** Stop the loop entirely — e.g. the layer has faded out of view. */
+  paused?: boolean;
 };
+
+const FONT_SIZE = 16;
+const CHAR_WIDTH = 10;
+const CHAR_HEIGHT = 20;
+// A fade runs in this many discrete steps, which lets every colour the canvas
+// can ever paint be precomputed into a lookup table instead of interpolated
+// (and re-stringified) per letter per frame.
+const FADE_STEPS = 20;
+// Glyph rasterisation cost scales with device pixels; a decorative noise field
+// gains nothing from a 3x backing store on a phone.
+const MAX_DPR = 2;
+
+const hexToRgb = (hex: string) => {
+  const shorthand = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  const full = hex.replace(shorthand, (_m, r, g, b) => r + r + g + g + b + b);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(full);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : { r: 255, g: 255, b: 255 };
+};
+
+/**
+ * Every colour a letter can hold is `from -> to` at one of FADE_STEPS+1 steps,
+ * so the whole space is a few hundred strings. Build them once.
+ */
+function buildColorTable(colors: string[]) {
+  const rgb = colors.map(hexToRgb);
+  const n = rgb.length;
+  const table = new Array<string>(n * n * (FADE_STEPS + 1));
+  for (let from = 0; from < n; from++) {
+    for (let to = 0; to < n; to++) {
+      for (let step = 0; step <= FADE_STEPS; step++) {
+        const f = step / FADE_STEPS;
+        const r = Math.round(rgb[from].r + (rgb[to].r - rgb[from].r) * f);
+        const g = Math.round(rgb[from].g + (rgb[to].g - rgb[from].g) * f);
+        const b = Math.round(rgb[from].b + (rgb[to].b - rgb[from].b) * f);
+        table[(from * n + to) * (FADE_STEPS + 1) + step] = `rgb(${r}, ${g}, ${b})`;
+      }
+    }
+  }
+  return table;
+}
 
 const LetterGlitch = ({
   glitchColors = ["#1b3326", "#4ade80", "#38d9c4"],
@@ -31,214 +72,307 @@ const LetterGlitch = ({
   characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789",
   interactionBounds,
   interactionRadius = 130,
+  paused = false,
 }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animationRef = useRef<number>(0);
-  const letters = useRef<Letter[]>([]);
-  const grid = useRef({ columns: 0, rows: 0 });
-  const context = useRef<CanvasRenderingContext2D | null>(null);
-  const lastGlitchTime = useRef(Date.now());
   const boundsRef = useRef(interactionBounds);
   boundsRef.current = interactionBounds;
+  const pausedRef = useRef(paused);
+  // Set by the canvas effect so the `paused` effect can re-evaluate the run
+  // gate without tearing the canvas down and rebuilding the grid.
+  const syncRef = useRef<() => void>(() => {});
 
-  const lettersAndSymbols = Array.from(characters);
+  const charset = useMemo(() => Array.from(characters), [characters]);
+  const colorTable = useMemo(() => buildColorTable(glitchColors), [glitchColors]);
 
-  const fontSize = 16;
-  const charWidth = 10;
-  const charHeight = 20;
+  useEffect(() => {
+    pausedRef.current = paused;
+    syncRef.current();
+  }, [paused]);
 
-  const getRandomChar = () =>
-    lettersAndSymbols[Math.floor(Math.random() * lettersAndSymbols.length)];
-
-  const getRandomColor = () => glitchColors[Math.floor(Math.random() * glitchColors.length)];
-
-  const hexToRgb = (hex: string) => {
-    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-    hex = hex.replace(shorthandRegex, (_m, r, g, b) => r + r + g + g + b + b);
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
-      : null;
-  };
-
-  const interpolateColor = (
-    start: { r: number; g: number; b: number },
-    end: { r: number; g: number; b: number },
-    factor: number,
-  ) =>
-    `rgb(${Math.round(start.r + (end.r - start.r) * factor)}, ${Math.round(
-      start.g + (end.g - start.g) * factor,
-    )}, ${Math.round(start.b + (end.b - start.b) * factor)})`;
-
-  const initializeLetters = (columns: number, rows: number) => {
-    grid.current = { columns, rows };
-    letters.current = Array.from({ length: columns * rows }, () => ({
-      char: getRandomChar(),
-      color: getRandomColor(),
-      targetColor: getRandomColor(),
-      colorProgress: 1,
-    }));
-  };
-
-  const drawLetters = () => {
-    const canvas = canvasRef.current;
-    if (!context.current || !canvas || letters.current.length === 0) return;
-    const ctx = context.current;
-    const { width, height } = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, width, height);
-    ctx.font = `${fontSize}px monospace`;
-    ctx.textBaseline = "top";
-
-    letters.current.forEach((letter, index) => {
-      const x = (index % grid.current.columns) * charWidth;
-      const y = Math.floor(index / grid.current.columns) * charHeight;
-      ctx.fillStyle = letter.color;
-      ctx.fillText(letter.char, x, y);
-    });
-  };
-
-  const resizeCanvas = () => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     const parent = canvas?.parentElement;
     if (!canvas || !parent) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = parent.getBoundingClientRect();
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) return;
 
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
+    const paletteSize = glitchColors.length;
+    const stride = FADE_STEPS + 1;
+    const reduceMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    context.current?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let columns = 0;
+    let rows = 0;
+    let count = 0;
 
-    initializeLetters(Math.ceil(rect.width / charWidth), Math.ceil(rect.height / charHeight));
-    drawLetters();
-  };
+    // Letter state as parallel typed arrays: no per-frame object churn.
+    let chars = new Uint8Array(0);
+    let fromColor = new Uint8Array(0);
+    let toColor = new Uint8Array(0);
+    let step = new Uint8Array(0);
 
-  const updateLetters = () => {
-    if (letters.current.length === 0) return;
-    const updateCount = Math.max(1, Math.floor(letters.current.length * 0.05));
-    for (let i = 0; i < updateCount; i++) {
-      const index = Math.floor(Math.random() * letters.current.length);
-      const letter = letters.current[index];
-      if (!letter) continue;
-      letter.char = getRandomChar();
-      letter.targetColor = getRandomColor();
-      if (!smooth) {
-        letter.color = letter.targetColor;
-        letter.colorProgress = 1;
-      } else {
-        letter.colorProgress = 0;
-      }
-    }
-  };
+    // Only cells that actually changed get repainted, so the per-frame cost
+    // tracks the number of glitching letters rather than the whole grid.
+    let dirtyFlag = new Uint8Array(0);
+    let dirtyList = new Int32Array(0);
+    let dirtyCount = 0;
 
-  const handleSmoothTransitions = () => {
-    let needsRedraw = false;
-    letters.current.forEach((letter) => {
-      if (letter.colorProgress < 1) {
-        letter.colorProgress = Math.min(1, letter.colorProgress + 0.05);
-        const startRgb = hexToRgb(letter.color) ?? parseRgb(letter.color);
-        const endRgb = hexToRgb(letter.targetColor);
-        if (startRgb && endRgb) {
-          letter.color = interpolateColor(startRgb, endRgb, letter.colorProgress);
-          needsRedraw = true;
-        }
-      }
-    });
-    if (needsRedraw) drawLetters();
-  };
+    // Letters mid-fade, so the fade pass never scans the full grid.
+    let fadingFlag = new Uint8Array(0);
+    let fadingList = new Int32Array(0);
+    let fadingCount = 0;
 
-  const parseRgb = (value: string) => {
-    const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(value);
-    return m ? { r: +m[1], g: +m[2], b: +m[3] } : null;
-  };
+    const randomChar = () => (Math.random() * charset.length) | 0;
+    const randomColor = () => (Math.random() * paletteSize) | 0;
 
-  const animate = () => {
-    const now = Date.now();
-    if (now - lastGlitchTime.current >= glitchSpeed) {
-      updateLetters();
-      drawLetters();
-      lastGlitchTime.current = now;
-    }
-    if (smooth) handleSmoothTransitions();
-    animationRef.current = requestAnimationFrame(animate);
-  };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    context.current = canvas.getContext("2d");
-    resizeCanvas();
-    animate();
-
-    let resizeTimeout: ReturnType<typeof setTimeout>;
-    const handleResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        cancelAnimationFrame(animationRef.current);
-        resizeCanvas();
-        animate();
-      }, 100);
+    const markDirty = (i: number) => {
+      if (dirtyFlag[i]) return;
+      dirtyFlag[i] = 1;
+      dirtyList[dirtyCount++] = i;
     };
 
-    const handlePointerMove = (e: PointerEvent) => {
+    const markFading = (i: number) => {
+      if (fadingFlag[i]) return;
+      fadingFlag[i] = 1;
+      fadingList[fadingCount++] = i;
+    };
+
+    const allocate = (cols: number, rws: number) => {
+      columns = cols;
+      rows = rws;
+      count = cols * rws;
+      chars = new Uint8Array(count);
+      fromColor = new Uint8Array(count);
+      toColor = new Uint8Array(count);
+      step = new Uint8Array(count);
+      dirtyFlag = new Uint8Array(count);
+      dirtyList = new Int32Array(count);
+      fadingFlag = new Uint8Array(count);
+      fadingList = new Int32Array(count);
+      dirtyCount = 0;
+      fadingCount = 0;
+
+      for (let i = 0; i < count; i++) {
+        chars[i] = randomChar();
+        const c = randomColor();
+        fromColor[i] = c;
+        toColor[i] = c;
+        step[i] = FADE_STEPS;
+      }
+    };
+
+    const colorOf = (i: number) =>
+      colorTable[(fromColor[i] * paletteSize + toColor[i]) * stride + step[i]];
+
+    const drawCell = (i: number) => {
+      const x = (i % columns) * CHAR_WIDTH;
+      const y = ((i / columns) | 0) * CHAR_HEIGHT;
+      ctx.clearRect(x, y, CHAR_WIDTH, CHAR_HEIGHT);
+      ctx.fillStyle = colorOf(i);
+      ctx.fillText(charset[chars[i]], x, y);
+    };
+
+    const drawAll = () => {
+      ctx.clearRect(0, 0, columns * CHAR_WIDTH, rows * CHAR_HEIGHT);
+      for (let i = 0; i < count; i++) drawCell(i);
+      dirtyCount = 0;
+      dirtyFlag.fill(0);
+    };
+
+    const flushDirty = () => {
+      for (let d = 0; d < dirtyCount; d++) {
+        const i = dirtyList[d];
+        dirtyFlag[i] = 0;
+        drawCell(i);
+      }
+      dirtyCount = 0;
+    };
+
+    const scramble = (i: number) => {
+      chars[i] = randomChar();
+      fromColor[i] = toColor[i];
+      toColor[i] = randomColor();
+      if (smooth && !reduceMotion) {
+        step[i] = 0;
+        markFading(i);
+      } else {
+        step[i] = FADE_STEPS;
+      }
+      markDirty(i);
+    };
+
+    const glitchTick = () => {
+      const updates = Math.max(1, (count * 0.05) | 0);
+      for (let i = 0; i < updates; i++) scramble((Math.random() * count) | 0);
+    };
+
+    const advanceFades = () => {
+      let write = 0;
+      for (let r = 0; r < fadingCount; r++) {
+        const i = fadingList[r];
+        const next = step[i] + 1;
+        step[i] = next;
+        markDirty(i);
+        if (next < FADE_STEPS) {
+          fadingList[write++] = i;
+        } else {
+          fadingFlag[i] = 0;
+        }
+      }
+      fadingCount = write;
+    };
+
+    const resize = () => {
+      const rect = parent.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.font = `${FONT_SIZE}px monospace`;
+      ctx.textBaseline = "top";
+
+      allocate(
+        Math.max(1, Math.ceil(rect.width / CHAR_WIDTH)),
+        Math.max(1, Math.ceil(rect.height / CHAR_HEIGHT)),
+      );
+      drawAll();
+    };
+
+    resize();
+
+    let raf = 0;
+    let lastGlitch = 0;
+    let isOnScreen = true;
+    let isPageVisible = !document.hidden;
+
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      if (lastGlitch === 0) lastGlitch = now;
+      if (now - lastGlitch >= glitchSpeed) {
+        glitchTick();
+        lastGlitch = now;
+      }
+      if (smooth && !reduceMotion) advanceFades();
+      if (dirtyCount > 0) flushDirty();
+    };
+
+    const running = () => isOnScreen && isPageVisible && !pausedRef.current && !reduceMotion;
+
+    const start = () => {
+      if (raf === 0 && running()) {
+        lastGlitch = 0;
+        raf = requestAnimationFrame(frame);
+      }
+    };
+    const stop = () => {
+      if (raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+    const sync = () => (running() ? start() : stop());
+    syncRef.current = sync;
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        isOnScreen = entry.isIntersecting;
+        sync();
+      },
+      { threshold: 0 },
+    );
+    io.observe(parent);
+
+    const onVisibility = () => {
+      isPageVisible = !document.hidden;
+      sync();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        stop();
+        resize();
+        sync();
+      }, 120);
+    };
+    window.addEventListener("resize", onResize);
+
+    // Pointer scrambling is coalesced into one rAF so a high-rate mouse cannot
+    // drive more scrambles than there are frames to draw them.
+    let pointerX = 0;
+    let pointerY = 0;
+    let pointerPending = false;
+    let pointerRaf = 0;
+
+    const applyPointer = () => {
+      pointerRaf = 0;
+      if (!pointerPending) return;
+      pointerPending = false;
+
       const getBounds = boundsRef.current;
       if (!getBounds) return;
       const bounds = getBounds();
       if (
         !bounds ||
-        e.clientX < bounds.left ||
-        e.clientX > bounds.right ||
-        e.clientY < bounds.top ||
-        e.clientY > bounds.bottom
+        pointerX < bounds.left ||
+        pointerX > bounds.right ||
+        pointerY < bounds.top ||
+        pointerY > bounds.bottom
       )
         return;
 
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const { columns, rows } = grid.current;
-      const colRadius = Math.ceil(interactionRadius / charWidth);
-      const rowRadius = Math.ceil(interactionRadius / charHeight);
-      const col = Math.floor(x / charWidth);
-      const row = Math.floor(y / charHeight);
+      // The canvas fills a fixed, full-viewport layer, so its origin is the
+      // viewport origin — no getBoundingClientRect needed per move.
+      const col = (pointerX / CHAR_WIDTH) | 0;
+      const row = (pointerY / CHAR_HEIGHT) | 0;
+      const colRadius = Math.ceil(interactionRadius / CHAR_WIDTH);
+      const rowRadius = Math.ceil(interactionRadius / CHAR_HEIGHT);
 
       for (let r = row - rowRadius; r <= row + rowRadius; r++) {
         if (r < 0 || r >= rows) continue;
         for (let c = col - colRadius; c <= col + colRadius; c++) {
           if (c < 0 || c >= columns) continue;
-          const dx = (c - col) * charWidth;
-          const dy = (r - row) * charHeight;
-          const dist = Math.hypot(dx, dy);
+          const dx = (c - col) * CHAR_WIDTH;
+          const dy = (r - row) * CHAR_HEIGHT;
+          const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist > interactionRadius) continue;
           if (Math.random() > 1 - dist / interactionRadius) continue;
-          const letter = letters.current[r * columns + c];
-          if (!letter) continue;
-          letter.char = getRandomChar();
-          letter.targetColor = getRandomColor();
-          letter.colorProgress = smooth ? 0 : 1;
-          if (!smooth) letter.color = letter.targetColor;
+          scramble(r * columns + c);
         }
       }
     };
 
-    window.addEventListener("resize", handleResize);
-    window.addEventListener("pointermove", handlePointerMove);
+    const onPointerMove = (e: PointerEvent) => {
+      if (!running()) return;
+      pointerX = e.clientX;
+      pointerY = e.clientY;
+      pointerPending = true;
+      if (pointerRaf === 0) pointerRaf = requestAnimationFrame(applyPointer);
+    };
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+
+    sync();
 
     return () => {
-      cancelAnimationFrame(animationRef.current);
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("pointermove", handlePointerMove);
+      stop();
+      syncRef.current = () => {};
+      if (pointerRaf) cancelAnimationFrame(pointerRaf);
+      clearTimeout(resizeTimer);
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("pointermove", onPointerMove);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [glitchSpeed, smooth, interactionRadius]);
+  }, [glitchSpeed, smooth, interactionRadius, charset, colorTable, glitchColors.length]);
 
   return (
     <div className={`relative h-full w-full overflow-hidden ${className}`}>

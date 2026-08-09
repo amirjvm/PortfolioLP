@@ -1,8 +1,16 @@
 import { useEffect } from "react";
+// @ts-ignore
 import Lenis from "lenis";
 
 export function useLenis() {
   useEffect(() => {
+    // Respect the OS setting: smooth scrolling is exactly the kind of motion
+    // "reduce motion" is asking us to drop.
+    const reduceMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
     const lenis = new Lenis({
       duration: 1.15,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -14,7 +22,21 @@ export function useLenis() {
       lenis.raf(time);
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    const start = () => {
+      if (raf === 0) raf = requestAnimationFrame(loop);
+    };
+    const stop = () => {
+      if (raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+    start();
+
+    // A backgrounded tab still schedules rAF in some conditions; nothing here
+    // needs to run while the page is hidden.
+    const onVisibility = () => (document.hidden ? stop() : start());
+    document.addEventListener("visibilitychange", onVisibility);
 
     // Animate in-page anchor clicks instead of jumping there instantly.
     const onClick = (e: MouseEvent) => {
@@ -41,7 +63,8 @@ export function useLenis() {
 
     return () => {
       document.removeEventListener("click", onClick, true);
-      cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibility);
+      stop();
       lenis.destroy();
     };
   }, []);
