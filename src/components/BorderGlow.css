@@ -133,3 +133,16 @@
   overflow: auto;
   z-index: 1;
 }
+
+/*
+ * Mobile: there is no cursor to track, and touch browsers leave :hover stuck
+ * on after a tap — which pins the glow on permanently. Drop the glow layers;
+ * the card keeps its border, background and shadow.
+ */
+@media (max-width: 767px) {
+  .border-glow-card::before,
+  .border-glow-card::after,
+  .border-glow-card > .edge-light {
+    display: none;
+  }
+}

@@ -1,6 +1,12 @@
 import { useEffect } from "react";
-// @ts-ignore
 import Lenis from "lenis";
+
+// The live instance, so callers outside the anchor handler (the mobile menu)
+// can scroll with the same smoothing instead of jumping.
+let active: Lenis | null = null;
+
+/** Null when smooth scrolling is off — reduced motion, or not mounted yet. */
+export const getLenis = () => active;
 
 export function useLenis() {
   useEffect(() => {
@@ -16,6 +22,7 @@ export function useLenis() {
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
     });
+    active = lenis;
 
     let raf = 0;
     const loop = (time: number) => {
@@ -56,7 +63,8 @@ export function useLenis() {
         duration: 1.3,
         easing: (t: number) => 1 - Math.pow(1 - t, 4),
       });
-      window.history.replaceState(null, "", hash);
+      // The hash is deliberately NOT written to the URL: it would make the
+      // next reload jump straight back down to that section.
     };
 
     document.addEventListener("click", onClick, true);
@@ -66,6 +74,7 @@ export function useLenis() {
       document.removeEventListener("visibilitychange", onVisibility);
       stop();
       lenis.destroy();
+      active = null;
     };
   }, []);
 }

@@ -8,7 +8,9 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: { queryClient },
-    scrollRestoration: true,
+    // One-page site: restoring the old offset on reload reads as the page
+    // scrolling itself down. Always start at the top.
+    scrollRestoration: false,
     defaultPreloadStaleTime: 0,
   });
 

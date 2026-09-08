@@ -1,12 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef } from "react";
+import {
+  Bot,
+  CornerDownRight,
+  Database,
+  Github,
+  LayoutTemplate,
+  Leaf,
+  Languages as LanguagesIcon,
+  SquareTerminal,
+  Wrench,
+} from "lucide-react";
+import { useEffect, useRef } from "react";
 import BorderGlow from "@/components/BorderGlow";
 import { HeroNav } from "@/components/HeroNav";
+import MagicBento from "@/components/MagicBento";
 import { SceneBackground } from "@/components/SceneBackground";
 import { Reveal } from "@/components/Reveal";
 import SpecularButton from "@/components/SpecularButton";
 import { useLenis } from "@/hooks/use-lenis";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,6 +44,7 @@ export const Route = createFileRoute("/")({
 const NAV = [
   { id: "about", label: "About" },
   { id: "experience", label: "Experience" },
+  { id: "projects", label: "Projects" },
   { id: "skills", label: "Skills" },
   { id: "education", label: "Education" },
   { id: "contact", label: "Contact" },
@@ -52,6 +64,7 @@ const GLOW = {
 const SKILL_GROUPS = [
   {
     title: "Language & Core",
+    icon: SquareTerminal,
     items: [
       "Java fundamentals",
       "OOP",
@@ -59,23 +72,50 @@ const SKILL_GROUPS = [
       "Collections",
       "Exception handling",
       "Multithreading basics",
+      "Basic Golang",
     ],
   },
   {
     title: "Spring Ecosystem",
-    items: ["Spring Core", "DI / Beans / Context", "Spring Boot", "REST API", "Status codes", "Basic XML"],
+    icon: Leaf,
+    items: [
+      "Spring Core",
+      "DI / Beans / Context",
+      "Spring Boot",
+      "REST API",
+      "Middleware",
+      "Status codes",
+      "Basic XML",
+    ],
   },
   {
     title: "Data",
-    items: ["JPA", "Repositories", "Entity mapping", "ORM", "SQL", "PostgreSQL", "Basic ACID", "Caching basics"],
+    icon: Database,
+    items: [
+      "JPA",
+      "Repositories",
+      "Entity mapping",
+      "ORM",
+      "SQL",
+      "PostgreSQL",
+      "Basic ACID",
+      "Caching basics",
+    ],
   },
   {
     title: "Tooling",
+    icon: Wrench,
     items: ["Git", "IntelliJ IDEA", "Maven", "Apidog / Postman", "Basic Docker", "YAML"],
   },
   {
     title: "Frontend touch",
+    icon: LayoutTemplate,
     items: ["HTML", "CSS / Tailwind", "Basic JavaScript"],
+  },
+  {
+    title: "AI",
+    icon: Bot,
+    items: ["Claude Code", "AI development", "Agentic AI", "LLMs"],
   },
 ];
 
@@ -87,9 +127,39 @@ const HIGHLIGHTS = [
   "Designed and implemented an SMS notification system for a customer loyalty program, triggered by rule-based business logic",
 ];
 
+const PROJECTS = [
+  {
+    title: "OmidPay",
+    description:
+      "Iranian electronic payment gateway — collaborated on backend services for smart POS/card-reader payments and financial management tooling.",
+    href: "https://omidpayment.ir/",
+    label: "Collaborated",
+  },
+  {
+    title: "Parvazi Gold",
+    description:
+      "Trading dashboard PWA for buying and selling gold and coins — live pricing, order history and an AI trading assistant.",
+    href: "https://pwa.parvazigold.ir/",
+    label: "In progress",
+  },
+  {
+    title: "NovaStore",
+    description:
+      "E-commerce platform built for my GitHub portfolio — product catalog, cart and checkout with a Java Spring Boot backend.",
+    href: "https://github.com/amirjvm",
+    label: "In progress",
+  },
+];
+
 function Portfolio() {
   useLenis();
   const heroRef = useRef<HTMLElement | null>(null);
+
+  // The browser restores the previous scroll offset on reload by default,
+  // which on a one-pager looks like the page scrolling itself down to About.
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+  }, []);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -137,11 +207,12 @@ function Portfolio() {
                 See experience
               </a>
               <a
-                href="https://github.com/abbasigudarzi"
+                href="https://github.com/amirjvm"
                 target="_blank"
                 rel="noreferrer noopener"
-                className="rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+                className="flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
               >
+                <Github className="size-4" />
                 GitHub
               </a>
             </div>
@@ -170,222 +241,259 @@ function Portfolio() {
         is the shadow that fades one into the other.
       */}
       <div className="relative z-10 bg-background">
+        {/*
+          Sits above the panel, so it must NOT be clipped — the wrapper keeps
+          overflow visible and the ambient glow does its own clipping below.
+        */}
         <div
           aria-hidden
-          className="hero-fade pointer-events-none absolute inset-x-0 bottom-full h-56"
+          className="hero-fade pointer-events-none absolute inset-x-0 bottom-full h-72"
         />
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="ambient-glow absolute inset-0" />
+        </div>
         <div className="mx-auto w-full max-w-5xl px-5 sm:px-8">
-        {/* About */}
-        <Section id="about" title="About me" kicker="01">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Reveal>
-              <BorderGlow {...GLOW} animated className="h-full">
-                <div className="p-7 sm:p-9">
-                  <h3 className="text-lg font-semibold">Where I'm coming from</h3>
-                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                    I spent 9 months at a software company as a Java backend developer. The first 4
-                    months went into Java Core fundamentals and getting used to the team's
-                    Scrum-based workflow. After that I moved onto Spring and Spring Boot tasks —
-                    integrating third-party APIs like KYC facial recognition, payment services and
-                    inquiry services. My last task there was an SMS notification system for a
-                    customer loyalty program, triggered by business rules.
-                  </p>
-                </div>
-              </BorderGlow>
-            </Reveal>
-            <Reveal delay={120}>
-              <BorderGlow {...GLOW} className="h-full">
-                <div className="p-7 sm:p-9">
-                  <h3 className="text-lg font-semibold">Where I'm going</h3>
-                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                    I want depth, not just breadth: understanding not only how to build APIs and
-                    services with Java and Spring Boot, but why they work — data structures and
-                    algorithms, SOLID, design patterns and DDD, reliable database design, secure and
-                    well-tested systems. Beyond the application layer I'm expanding into cloud
-                    infrastructure, containerization, CI/CD and distributed systems, and I strongly
-                    prefer learning inside a real team.
-                  </p>
-                </div>
-              </BorderGlow>
-            </Reveal>
-          </div>
-        </Section>
-
-        {/* Experience */}
-        <Section id="experience" title="Experience" kicker="02">
-          <Reveal>
-            <BorderGlow {...GLOW}>
-              <div className="p-7 sm:p-10">
-                <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <div>
-                    <h3 className="text-xl font-semibold">Junior Java Backend Developer (Intern)</h3>
-                    <p className="mt-1 text-sm text-primary">Electronic Taban Software Company</p>
+          {/* About */}
+          <Section id="about" title="About me" kicker="01">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Reveal>
+                <BorderGlow {...GLOW} animated className="h-full">
+                  <div className="p-7 sm:p-9">
+                    <h3 className="text-lg font-semibold">Where I'm coming from</h3>
+                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                      I spent 9 months at a software company as a Java backend developer. The first
+                      4 months went into Java Core fundamentals and getting used to the team's
+                      Scrum-based workflow. After that I moved onto Spring and Spring Boot tasks —
+                      integrating third-party APIs like KYC facial recognition, payment services and
+                      inquiry services. My last task there was an SMS notification system for a
+                      customer loyalty program, triggered by business rules.
+                    </p>
                   </div>
-                  <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
-                    2025 — 2026 · 9 months
-                  </p>
-                </div>
-                <ul className="mt-7 space-y-4">
-                  {HIGHLIGHTS.map((h) => (
-                    <li key={h} className="flex gap-3 text-sm leading-relaxed text-muted-foreground">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>{h}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </BorderGlow>
-          </Reveal>
-        </Section>
+                </BorderGlow>
+              </Reveal>
+              <Reveal delay={120}>
+                <BorderGlow {...GLOW} className="h-full">
+                  <div className="p-7 sm:p-9">
+                    <h3 className="text-lg font-semibold">Where I'm going</h3>
+                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                      I want depth, not just breadth: understanding not only how to build APIs and
+                      services with Java and Spring Boot, but why they work — data structures and
+                      algorithms, SOLID, design patterns and DDD, reliable database design, secure
+                      and well-tested systems. Beyond the application layer I'm expanding into cloud
+                      infrastructure, containerization, CI/CD and distributed systems, and I
+                      strongly prefer learning inside a real team.
+                    </p>
+                  </div>
+                </BorderGlow>
+              </Reveal>
+            </div>
+          </Section>
 
-        {/* Skills */}
-        <Section id="skills" title="Skills" kicker="03">
-          <div className="grid gap-5 sm:grid-cols-2">
-            {SKILL_GROUPS.map((group, i) => (
-              <Reveal key={group.title} delay={i * 80}>
+          {/* Experience */}
+          <Section id="experience" title="Experience" kicker="02">
+            <Reveal>
+              <BorderGlow {...GLOW}>
+                <div className="p-7 sm:p-10">
+                  <div className="flex flex-wrap items-baseline justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        Junior Java Backend Developer (Intern)
+                      </h3>
+                      <p className="mt-1 text-sm text-primary">Electronic Taban Software Company</p>
+                    </div>
+                    <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+                      2025 — 2026 · 9 months
+                    </p>
+                  </div>
+                  <ul className="mt-7 space-y-4">
+                    {HIGHLIGHTS.map((h) => (
+                      <li
+                        key={h}
+                        className="flex gap-3 text-sm leading-relaxed text-muted-foreground"
+                      >
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                        <span>{h}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </BorderGlow>
+            </Reveal>
+          </Section>
+
+          {/* Projects */}
+          <Section id="projects" title="Projects" kicker="03">
+            <Reveal>
+              <MagicBento
+                items={PROJECTS}
+                glowColor="34, 197, 94"
+                spotlightRadius={280}
+                particleCount={8}
+                enableTilt={false}
+              />
+            </Reveal>
+          </Section>
+
+          {/* Skills */}
+          <Section id="skills" title="Skills" kicker="04">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {SKILL_GROUPS.map((group, i) => (
+                <Reveal key={group.title} delay={i * 80}>
+                  <BorderGlow {...GLOW} borderRadius={20} glowRadius={30} className="h-full">
+                    <div className="p-6 sm:p-7">
+                      <h3 className="flex items-center gap-2 font-mono text-xs tracking-[0.2em] text-primary uppercase">
+                        <group.icon className="size-4 shrink-0" />
+                        {group.title}
+                      </h3>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {group.items.map((s) => (
+                          <span
+                            key={s}
+                            className="rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-secondary-foreground"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                      {group.title === "Frontend touch" && (
+                        <p className="mt-4 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                          <CornerDownRight className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                          <span>
+                            built this whole portfolio with{" "}
+                            <span className="text-primary">Claude</span> — and, arguably, great
+                            prompting skills.
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </BorderGlow>
+                </Reveal>
+              ))}
+              <Reveal delay={SKILL_GROUPS.length * 80}>
                 <BorderGlow {...GLOW} borderRadius={20} glowRadius={30} className="h-full">
                   <div className="p-6 sm:p-7">
-                    <h3 className="font-mono text-xs tracking-[0.2em] text-primary uppercase">
-                      {group.title}
+                    <h3 className="flex items-center gap-2 font-mono text-xs tracking-[0.2em] text-primary uppercase">
+                      <LanguagesIcon className="size-4 shrink-0" />
+                      Languages
                     </h3>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {group.items.map((s) => (
-                        <span
-                          key={s}
-                          className="rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-secondary-foreground"
-                        >
-                          {s}
-                        </span>
-                      ))}
+                    <div className="mt-5">
+                      <div className="flex items-baseline justify-between text-sm">
+                        <span>English</span>
+                        <span className="text-muted-foreground">70%</span>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                        <div className="h-full w-[70%] rounded-full bg-primary" />
+                      </div>
+                      <div className="mt-5 flex items-baseline justify-between text-sm">
+                        <span>Persian</span>
+                        <span className="text-muted-foreground">Native</span>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                        <div className="h-full w-full rounded-full bg-primary" />
+                      </div>
                     </div>
                   </div>
                 </BorderGlow>
               </Reveal>
-            ))}
-            <Reveal delay={SKILL_GROUPS.length * 80}>
-              <BorderGlow {...GLOW} borderRadius={20} glowRadius={30} className="h-full">
-                <div className="p-6 sm:p-7">
-                  <h3 className="font-mono text-xs tracking-[0.2em] text-primary uppercase">
-                    Languages
+            </div>
+          </Section>
+
+          {/* Education */}
+          <Section id="education" title="Education" kicker="05">
+            <div className="grid gap-5 md:grid-cols-2">
+              {[
+                {
+                  degree: "Master's Degree in Software Engineering",
+                  school: "Islamic Azad University, Electronic Campus (Tehran)",
+                  years: "2025 — present",
+                },
+                {
+                  degree: "Computer Engineering",
+                  school: "Technical and Vocational University of Khorramabad (TVU)",
+                  years: "2021 — 2025",
+                },
+              ].map((e, i) => (
+                <Reveal key={e.degree} delay={i * 100}>
+                  <BorderGlow {...GLOW} borderRadius={20} glowRadius={30} className="h-full">
+                    <div className="p-6 sm:p-8">
+                      <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
+                        {e.years}
+                      </p>
+                      <h3 className="mt-3 text-lg font-semibold">{e.degree}</h3>
+                      <p className="mt-2 text-sm text-muted-foreground">{e.school}</p>
+                    </div>
+                  </BorderGlow>
+                </Reveal>
+              ))}
+            </div>
+          </Section>
+
+          {/* Contact */}
+          <Section id="contact" title="Contact" kicker="06">
+            <Reveal>
+              <BorderGlow {...GLOW} glowRadius={55} glowIntensity={1.2}>
+                <div className="p-8 text-center sm:p-14">
+                  <h3 className="text-3xl font-semibold sm:text-4xl">
+                    <span className="text-gradient">Let's build the backend.</span>
                   </h3>
-                  <div className="mt-5">
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span>English</span>
-                      <span className="text-muted-foreground">70%</span>
-                    </div>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                      <div className="h-full w-[70%] rounded-full bg-primary" />
-                    </div>
-                    <div className="mt-5 flex items-baseline justify-between text-sm">
-                      <span>Persian</span>
-                      <span className="text-muted-foreground">Native</span>
-                    </div>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                      <div className="h-full w-full rounded-full bg-primary" />
-                    </div>
+                  <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
+                    Open to junior Java / Spring Boot roles where I can grow inside a real
+                    engineering team.
+                  </p>
+                  <div className="mt-8 flex flex-wrap justify-center gap-3">
+                    <SpecularButton
+                      href="mailto:abbasigudarzi@gmail.com"
+                      size="md"
+                      radius={999}
+                      lineColor="#6ee7a0"
+                      baseColor="#2a5a41"
+                      textColor="#eafff2"
+                      tint="#4ade80"
+                      tintOpacity={0.1}
+                      shineSize={14}
+                      proximity={220}
+                    >
+                      abbasigudarzi@gmail.com
+                    </SpecularButton>
+                    <SpecularButton
+                      href="tel:+989102179870"
+                      size="md"
+                      radius={999}
+                      lineColor="#38d9c4"
+                      baseColor="#2a5a41"
+                      textColor="#eafff2"
+                      shineSize={14}
+                      proximity={220}
+                    >
+                      +98 910 217 9870
+                    </SpecularButton>
+                    <SpecularButton
+                      href="https://github.com/amirjvm"
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      size="md"
+                      radius={999}
+                      lineColor="#a7f3d0"
+                      baseColor="#2a5a41"
+                      textColor="#eafff2"
+                      shineSize={14}
+                      proximity={220}
+                    >
+                      github.com/amirjvm
+                    </SpecularButton>
                   </div>
+
+                  <p className="mt-8 font-mono text-xs tracking-widest text-muted-foreground uppercase">
+                    Tehran, Region 2, Sattar-khan
+                  </p>
                 </div>
               </BorderGlow>
             </Reveal>
-          </div>
-        </Section>
+          </Section>
 
-        {/* Education */}
-        <Section id="education" title="Education" kicker="04">
-          <div className="grid gap-5 md:grid-cols-2">
-            {[
-              {
-                degree: "Master's Degree in Software Engineering",
-                school: "Islamic Azad University, Electronic Campus (Tehran)",
-                years: "2025 — present",
-              },
-              {
-                degree: "Computer Engineering",
-                school: "Technical and Vocational University of Khorramabad (TVU)",
-                years: "2021 — 2025",
-              },
-            ].map((e, i) => (
-              <Reveal key={e.degree} delay={i * 100}>
-                <BorderGlow {...GLOW} borderRadius={20} glowRadius={30} className="h-full">
-                  <div className="p-6 sm:p-8">
-                    <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
-                      {e.years}
-                    </p>
-                    <h3 className="mt-3 text-lg font-semibold">{e.degree}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{e.school}</p>
-                  </div>
-                </BorderGlow>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-
-        {/* Contact */}
-        <Section id="contact" title="Contact" kicker="05">
-          <Reveal>
-            <BorderGlow {...GLOW} glowRadius={55} glowIntensity={1.2}>
-              <div className="p-8 text-center sm:p-14">
-                <h3 className="text-3xl font-semibold sm:text-4xl">
-                  <span className="text-gradient">Let's build the backend.</span>
-                </h3>
-                <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
-                  Open to junior Java / Spring Boot roles where I can grow inside a real engineering
-                  team.
-                </p>
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
-                  <SpecularButton
-                    href="mailto:abbasigudarzi@gmail.com"
-                    size="md"
-                    radius={999}
-                    lineColor="#6ee7a0"
-                    baseColor="#2a5a41"
-                    textColor="#eafff2"
-                    tint="#4ade80"
-                    tintOpacity={0.1}
-                    shineSize={14}
-                    proximity={220}
-                  >
-                    abbasigudarzi@gmail.com
-                  </SpecularButton>
-                  <SpecularButton
-                    href="tel:+989102179870"
-                    size="md"
-                    radius={999}
-                    lineColor="#38d9c4"
-                    baseColor="#2a5a41"
-                    textColor="#eafff2"
-                    shineSize={14}
-                    proximity={220}
-                  >
-                    +98 910 217 9870
-                  </SpecularButton>
-                  <SpecularButton
-                    href="https://github.com/abbasigudarzi"
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    size="md"
-                    radius={999}
-                    lineColor="#a7f3d0"
-                    baseColor="#2a5a41"
-                    textColor="#eafff2"
-                    shineSize={14}
-                    proximity={220}
-                  >
-                    github.com/abbasigudarzi
-                  </SpecularButton>
-                </div>
-
-                <p className="mt-8 font-mono text-xs tracking-widest text-muted-foreground uppercase">
-                  Tehran, Region 2, Sattar-khan
-                </p>
-              </div>
-            </BorderGlow>
-          </Reveal>
-        </Section>
-
-        <footer className="border-t border-border py-10 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Amirali Abbasi — Java Backend Engineer
-        </footer>
+          <footer className="border-t border-border py-10 text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Amirali Abbasi — Java Backend Engineer
+          </footer>
         </div>
       </div>
     </main>

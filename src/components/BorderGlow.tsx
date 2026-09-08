@@ -44,6 +44,10 @@ function buildGradientVars(colors: string[]) {
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
 const easeInCubic = (x: number) => x * x * x;
 
+/** Matches the breakpoint where BorderGlow.css hides the glow layers. */
+const glowHidden = () =>
+  typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches;
+
 function animateValue({
   start = 0,
   end = 100,
@@ -138,6 +142,8 @@ const BorderGlow = ({
   // One style write per frame at most, however fast the mouse reports.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      // Nothing to light up on mobile, so skip the per-move work entirely.
+      if (glowHidden()) return;
       if (!rectRef.current) rectRef.current = cardRef.current?.getBoundingClientRect() ?? null;
       pointerRef.current.x = e.clientX;
       pointerRef.current.y = e.clientY;
@@ -167,6 +173,8 @@ const BorderGlow = ({
 
   useEffect(() => {
     if (!animated || !cardRef.current) return;
+    // The intro sweep is invisible on mobile — don't burn frames on it.
+    if (glowHidden()) return;
     const card = cardRef.current;
     const angleStart = 110;
     const angleEnd = 465;

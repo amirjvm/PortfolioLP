@@ -1,17 +1,13 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useScrollY } from "@/hooks/use-scroll";
 
-const LetterGlitch = lazy(() => import("./LetterGlitch"));
-
-// Hoisted so the array keeps identity across renders — LetterGlitch keys its
-// precomputed colour table off this prop.
-const GLITCH_COLORS = ["#16301f", "#4ade80", "#38d9c4"];
+const CRTWarp = lazy(() => import("./CRTWarp"));
 
 /** Below this opacity the layer contributes nothing visible, so stop drawing it. */
 const VISIBLE_EPSILON = 0.01;
 
 /**
- * Fixed page background. LetterGlitch owns the hero and nothing else: past the
+ * Fixed page background. CRTWarp owns the hero and nothing else: past the
  * hero the page sits on an opaque black panel, so the field is faded out and
  * its loop stopped rather than drawn underneath something that hides it.
  */
@@ -51,14 +47,18 @@ export function SceneBackground({ heroRef }: { heroRef: RefObject<HTMLElement | 
   return (
     <Suspense fallback={null}>
       <div ref={glitchLayer} className="absolute inset-0 opacity-45">
-        <LetterGlitch
-          glitchColors={GLITCH_COLORS}
-          glitchSpeed={60}
-          centerVignette={false}
-          outerVignette
-          smooth
-          interactionRadius={150}
-          interactionBounds={() => heroRef.current?.getBoundingClientRect() ?? null}
+        <CRTWarp
+          color="#22c55e"
+          backgroundColor="#050a08"
+          speed={0.35}
+          curvature={0.2}
+          scanlineStrength={0.2}
+          bloom={1.2}
+          brightness={1.1}
+          vignette={0.4}
+          mouseStrength={0.3}
+          dpr={1}
+          fps={30}
           paused={glitchPaused}
         />
       </div>
